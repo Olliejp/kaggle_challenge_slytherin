@@ -14,6 +14,7 @@ library(randomForest)
 library(rpart)
 library(modelr)
 
+
 #loading data
 
 df <- read.csv("vw_kaggle_train.csv", stringsAsFactors = F)
@@ -48,6 +49,9 @@ df_clean <- select(df,-c(7,15,13,14,11,16,10,12,6,26,28,24,23,22,25,18))
 dim(df_clean)
 head(df_clean)
 
+str(df_clean$my_label)
+df_clean$my_label <- as.factor(df_clean$my_label)
+
 #holding back 25% data for testing
 #split train and test data 
 set.seed(123) 
@@ -57,10 +61,12 @@ test1  = subset(df_clean, sample == FALSE)
 dim(train1)
 dim(test1)
 
-str(train1$my_label)
-train1$my_label <- as.factor(train1$my_label)
-str(test1$my_label)
-test1$my_label <- as.factor(test1$my_label)
+str(train1)
+
+#str(train1$my_label)
+#train1$my_label <- as.factor(train1$my_label)
+#str(test1$my_label)
+#test1$my_label <- as.factor(test1$my_label)
 
 #training DT
 set.seed(123)
@@ -69,7 +75,7 @@ dt <- rpart(my_label ~ activePower+activePowerDelta+reactivePower+voltage+
                          harmonicDelta8, data=train1, method = "class")
 print(dt)
 
-predictions_dt <- predict(dt, test1, type = "class")
+predictions_dt <- predict(dt, test1, block=numeric(0), type = "class")
 confusionMatrix(predictions_dt, test1$my_label)
 
 #training a random forest 
@@ -77,13 +83,3 @@ confusionMatrix(predictions_dt, test1$my_label)
 forest1 <- randomForest(my_label ~ activePower+activePowerDelta+reactivePower+voltage+
                           phase+transient8+transient10+harmonicDelta1+harmonicDelta2+
                           harmonicDelta8, data=train1, importance = TRUE)
-
-
-
-
-
-
-
-
-
-
