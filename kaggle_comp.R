@@ -210,15 +210,16 @@ dim(test_label)
 xgb_train <- xgb.DMatrix(data=train_data,label=train_label)
 xgb_test <- xgb.DMatrix(data=test_data,label=test_label)
 
+
 #setting params
 num_class = length(levels)
 params = list(
   booster="gbtree",
-  eta=0.001,
+  eta=0.3,
   max_depth=5,
-  gamma=3,
+  gamma=0,
   subsample=0.75,
-  colsample_bytree=1,
+  colsample_bytree=0.75,
   objective="multi:softprob",
   eval_metric="mlogloss",
   num_class=num_class
@@ -264,3 +265,4 @@ F1_RF1
 
 
 
+h
