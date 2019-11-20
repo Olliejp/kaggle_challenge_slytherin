@@ -183,12 +183,13 @@ df_clean_boost <- df_clean
 df_clean_boost$class <- as.integer(df_clean$my_label)-1
 label <- df_clean_boost$class
 label <- as.data.frame(label)#label vector for XGBOOT matrix 
+label <- as.matrix(label)
 
 df_clean_boost$my_label = NULL
 df_clean_boost$class = NULL #feature variables for XGBOOST matrix 
 
 
-#splitting data to train and test
+#splitting data to train and test for normal training 
 set.seed(123)
 sample = sample.split((df_clean), SplitRatio = .75)
 train_data = subset(df_clean_boost, sample == TRUE)
@@ -206,9 +207,23 @@ dim(train_label)
 dim(test_data)
 dim(test_label)
 
+#preparing matricies for kaggle comp
+df_clean_boost <- as.matrix(df_clean_boost)
+label <- as.matrix(label)
+
+xgb_train_kaggle <- xgb.DMatrix(data=df_clean_boost,label=label)
+
 #create the xgb.DMatrix objects
 xgb_train <- xgb.DMatrix(data=train_data,label=train_label)
 xgb_test <- xgb.DMatrix(data=test_data,label=test_label)
+
+
+test_data_kaggle <- test
+
+test_data_kaggle <- select(test_data_kaggle, c("type","activePower","activePowerDelta","reactivePower","voltage",
+                                                "phase","transient8","transient10","harmonicDelta1","harmonicDelta2",
+                                                "harmonicDelta8"))
+test_data_kaggle <- as.matrix(test_data_kaggle)
 
 
 #setting params
@@ -228,11 +243,11 @@ params = list(
 #dtraining XB
 xgb_fit <- xgb.train(
   params=params,
-  data=xgb_train,
+  data=xgb_train_kaggle,
   nrounds=500,
   nthreads=1,
   early_stopping_rounds=5,
-  watchlist=list(val1=xgb_train,val2=xgb_test),
+  watchlist=list(val1=xgb_train_kaggle),
   verbose=1
 )
 
@@ -240,16 +255,28 @@ xgb_fit
 
 #predicting new values 
 
-xgb_pred <- predict(xgb_fit,test_data,reshape=T)
+xgb_pred <- predict(xgb_fit,test_data_kaggle,reshape=T)
 xgb_pred <- as.data.frame(xgb_pred)
 colnames(xgb_pred) = levels(df_clean$my_label)
 
 xgb_pred$prediction <- apply(xgb_pred,1,function(x) colnames(xgb_pred)[which.max(x)])
-xgb_pred$label <- levels(df_clean$my_label)[test_label+1]
+xgb_pred$label <- levels(df_clean$my_label)[label+1]
 CM <- confusionMatrix(as.factor(xgb_pred$prediction), as.factor(xgb_pred$label))
 F1_RF1 <- F1_Score(y_true = xgb_pred$label, y_pred = xgb_pred$prediction, positive = NULL)
 F1_RF1
 
+#prepping for kaggle submit
+
+results_boost <- as.data.frame(xgb_pred)
+results_boost <- select(results_boost, "prediction")
+results_boost <- cbind(test$id, results_boost)
+colnames(results_boost) <- c("id", "my_label")
+write.table(results_boost, file = "results_boost.csv",row.names=FALSE, na="", sep=",")
+results1.2 <- read.csv("results_boost.csv")
+
+
+write.table(results1, file = "results_1.csv",row.names=FALSE, na="", sep=",")
+results1.1 <- read.csv("results_1.csv")
 
 
 
