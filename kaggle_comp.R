@@ -84,7 +84,7 @@ summary(df_clean_split$my_label)
 #holding back 25% data for testing
 #split train and test data 
 
-set.seed(345)
+set.seed(3)
 sample = sample.split(df_clean, SplitRatio = .75)
 train1 = subset(df_clean, sample == TRUE)
 test1  = subset(df_clean, sample == FALSE)
@@ -97,6 +97,10 @@ summary(train1$my_label)
 str(test1)
 summary(test1$my_label)
 
+#random shuffle of labels to test data
+set.seed(10)
+rows <- sample(nrow(test1))
+rand_labs <- test1[rows, ]
 
 # LDA ---------------------------------------------------------------------
 
@@ -134,13 +138,25 @@ F1_DT1
 set.seed(456)
 forest1 <- randomForest(my_label ~ type + activePower+activePowerDelta+reactivePower+
                           voltage+phase+transient8+transient10+harmonicDelta1+harmonicDelta2+
-                          harmonicDelta8, data=train1, importance = TRUE, ntree = 1000)
+                          harmonicDelta8, data=df_clean, mrty = 121, importance = TRUE, ntree = 500, nodesize = 2)
 
-predictions_rf <- predict(forest1, test1, type = "class")
+predictions_rf <- predict(forest1, test, type = "class")
+#pred_rf_rand <- predict(forest1, rand_labs, type = "class")
 confusionMatrix(predictions_rf, test1$my_label)
+print(forest1)
+plot(forest1)
 F1_RF1 <- F1_Score(y_true = test1$my_label, y_pred = predictions_rf, positive = NULL)
 F1_RF1
 
+results <- as.data.frame(predictions_rf)
+write.table(results, file = "results_1.csv",row.names=FALSE, na="",col.names="my_label", sep=",")
+results1 <- read.csv("results_1.csv")
+results1 <- cbind(test$id, results1)
+colnames(results1) <- c("id", "my_label")
+head(results1)
+
+write.table(results1, file = "results_1.csv",row.names=FALSE, na="", sep=",")
+results1.1 <- read.csv("results_1.csv")
 
 # NEURAL NETWORK ----------------------------------------------------------
 
